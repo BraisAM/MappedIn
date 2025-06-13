@@ -15,7 +15,7 @@
             padding: 10px;
             box-sizing: border-box;
         }
-        .result-item { margin-bottom: 10px; padding: 8px; border-bottom: 1px solid #eee; }
+        }
         button { margin: 5px; padding: 8px 12px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; }
         button:hover { background: #45a049; }
         #loading { display: none; color: #666; font-style: italic; }
@@ -195,12 +195,17 @@
                         const linkedInUrl = `https://www.linkedin.com/jobs/search/?location=${encodeURIComponent(city.name + ', Switzerland')}&distance=16`;
                         
                         const resultItem = document.createElement('div');
-                        resultItem.className = 'result-item';
+                        resultItem.className = 'result-container';
                         resultItem.innerHTML = `
-                            <h4>${city.name}</h4>
-                            <a href="${linkedInUrl}" target="_blank">View jobs on LinkedIn</a>
-                            <p><small>${linkedInUrl}</small></p>
-                        `;
+                            <div class="result-title">${city.name}</div>
+                            <div class="result-url">${linkedInUrl}</div>
+                            <a href="${linkedInUrl}" target="_blank" class="btn-visit">
+                                <svg class="btn-icon" viewBox="0 0 24 24">
+                                    <path d="M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z"/>
+                                </svg>
+                            Visit Link
+                            </a>
+                    `;
                         
                         resultsContainer.appendChild(resultItem);
                         citiesFound++;
