@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Job Search Map - Switzerland</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { height: 100vh; width: 70%; float: left; }
+        #sidebar { 
+            width: 30%; 
+            float: right; 
+            height: 100vh; 
+            overflow-y: auto; 
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        .result-item { margin-bottom: 10px; padding: 8px; border-bottom: 1px solid #eee; }
+        button { margin: 5px; padding: 8px 12px; cursor: pointer; background: #4CAF50; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #45a049; }
+        #loading { display: none; color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="sidebar">
+        <h2>Job Search in Switzerland</h2>
+        <p>Draw a polygon on the map to search for jobs in that area</p>
+        <button id="draw-btn">Draw Area</button>
+        <button id="clear-btn">Clear</button>
+        <div id="loading">Processing your selection...</div>
+        <div id="results"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+
+    <script>
+        // Switzerland coordinates (center of the country)
+        const swissCenter = [46.8182, 8.2275];
+        
+        // Coordinates of 50 most populated Swiss cities
+        const swissCities = [
+            {name: 'Zurich', coords: [47.3769, 8.5417]},
+            {name: 'Geneva', coords: [46.2044, 6.1432]},
+            {name: 'Basel', coords: [47.5596, 7.5886]},
+            {name: 'Bern', coords: [46.9480, 7.4474]},
+            {name: 'Lausanne', coords: [46.5197, 6.6323]},
+            {name: 'Winterthur', coords: [47.5056, 8.7241]},
+            {name: 'Lucerne', coords: [47.0502, 8.3093]},
+            {name: 'St. Gallen', coords: [47.4245, 9.3767]},
+            {name: 'Lugano', coords: [46.0037, 8.9511]},
+            {name: 'Biel/Bienne', coords: [47.1368, 7.2467]},
+            {name: 'Thun', coords: [46.7560, 7.6280]},
+            {name: 'Köniz', coords: [46.9244, 7.4147]},
+            {name: 'La Chaux-de-Fonds', coords: [47.1040, 6.8320]},
+            {name: 'Schaffhausen', coords: [47.6969, 8.6350]},
+            {name: 'Fribourg', coords: [46.8065, 7.1617]},
+            {name: 'Chur', coords: [46.8499, 9.5329]},
+            {name: 'Neuchâtel', coords: [46.9926, 6.9319]},
+            {name: 'Vernier', coords: [46.2179, 6.0854]},
+            {name: 'Uster', coords: [47.3514, 8.7206]},
+            {name: 'Sion', coords: [46.2290, 7.3624]},
+            {name: 'Emmen', coords: [47.0833, 8.3000]},
+            {name: 'Yverdon-les-Bains', coords: [46.7785, 6.6412]},
+            {name: 'Zug', coords: [47.1662, 8.5154]},
+            {name: 'Kriens', coords: [47.0359, 8.2774]},
+            {name: 'Rapperswil-Jona', coords: [47.2254, 8.8229]},
+            {name: 'Dübendorf', coords: [47.3972, 8.6184]},
+            {name: 'Montreux', coords: [46.4330, 6.9113]},
+            {name: 'Dietikon', coords: [47.4037, 8.4003]},
+            {name: 'Frauenfeld', coords: [47.5566, 8.8988]},
+            {name: 'Wetzikon', coords: [47.3234, 8.7971]},
+            {name: 'Baar', coords: [47.1962, 8.5295]},
+            {name: 'Meyrin', coords: [46.2323, 6.0780]},
+            {name: 'Carouge', coords: [46.1810, 6.1392]},
+            {name: 'Wädenswil', coords: [47.2266, 8.6697]},
+            {name: 'Bulach', coords: [47.5219, 8.5405]},
+            {name: 'Baden', coords: [47.4736, 8.3090]},
+            {name: 'Allschwil', coords: [47.5504, 7.5366]},
+            {name: 'Horgen', coords: [47.2599, 8.5987]},
+            {name: 'Nyon', coords: [46.3833, 6.2333]},
+            {name: 'Reinach', coords: [47.4926, 7.5904]},
+            {name: 'Vevey', coords: [46.4620, 6.8419]},
+            {name: 'Pratteln', coords: [47.5207, 7.6936]},
+            {name: 'Aarau', coords: [47.3904, 8.0457]},
+            {name: 'Regensdorf', coords: [47.4323, 8.4689]},
+            {name: 'Adliswil', coords: [47.3109, 8.5246]},
+            {name: 'Illnau-Effretikon', coords: [47.4118, 8.7218]},
+            {name: 'Schlieren', coords: [47.3976, 8.4476]},
+            {name: 'Opfikon', coords: [47.4316, 8.5759]},
+            {name: 'Gossau', coords: [47.4151, 9.2548]},
+            {name: 'Muttenz', coords: [47.5227, 7.6455]},
+            {name: 'Wil', coords: [47.4634, 9.0459]}
+        ];
+        
+        // Initialize map centered on Switzerland
+        const map = L.map('map').setView(swissCenter, 8);
+        
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add city markers to the map with smaller size
+        const cityMarkers = [];
+        swissCities.forEach(city => {
+            const marker = L.marker(city.coords, {
+                icon: L.icon({
+                    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                    iconSize: [18, 30],
+                    iconAnchor: [9, 30],
+                    popupAnchor: [1, -24],
+                    shadowSize: [30, 30]
+                })
+            })
+            .bindPopup(city.name)
+            .addTo(map);
+            cityMarkers.push(marker);
+        });
+
+        // Layer for drawing
+        const drawnItems = new L.FeatureGroup();
+        map.addLayer(drawnItems);
+        
+        // Drawing tools
+        const drawControl = new L.Control.Draw({
+            edit: {
+                featureGroup: drawnItems,
+                edit: false
+            },
+            draw: {
+                polygon: {
+                    allowIntersection: false,
+                    showArea: true,
+                    drawError: {
+                        color: '#b00b00',
+                        message: '<strong>Error:</strong> invalid shape!'
+                    },
+                    shapeOptions: {
+                        color: '#97009c',
+                        fillOpacity: 0.3
+                    }
+                },
+                rectangle: false,
+                circle: false,
+                marker: false,
+                polyline: false,
+                circlemarker: false
+            }
+        });
+        map.addControl(drawControl);
+
+        // Function to check if point is inside polygon
+        function isPointInPolygon(point, polygon) {
+            const polygonBounds = polygon.getLatLngs()[0];
+            const polygonPoints = polygonBounds.map(latlng => [latlng.lat, latlng.lng]);
+            const x = point.lat, y = point.lng;
+            
+            let inside = false;
+            for (let i = 0, j = polygonPoints.length - 1; i < polygonPoints.length; j = i++) {
+                const xi = polygonPoints[i][0], yi = polygonPoints[i][1];
+                const xj = polygonPoints[j][0], yj = polygonPoints[j][1];
+                
+                const intersect = ((yi > y) !== (yj > y))
+                    && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            
+            return inside;
+        }
+
+        // Drawing events
+        map.on(L.Draw.Event.CREATED, function(e) {
+            const layer = e.layer;
+            drawnItems.addLayer(layer);
+            
+            // Show loading indicator
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').innerHTML = '';
+            
+            // Process after a small delay to allow UI to update
+            setTimeout(() => {
+                // Generate LinkedIn links with 10km radius
+                const resultsContainer = document.getElementById('results');
+                resultsContainer.innerHTML = '<h3>Job search results for selected area:</h3>';
+                
+                let citiesFound = 0;
+                
+                swissCities.forEach(city => {
+                    const cityPoint = { lat: city.coords[0], lng: city.coords[1] };
+                    
+                    if (isPointInPolygon(cityPoint, layer)) {
+                        // URL with 10km radius parameter
+                        const linkedInUrl = `https://www.linkedin.com/jobs/search/?location=${encodeURIComponent(city.name + ', Switzerland')}&distance=10`;
+                        
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'result-item';
+                        resultItem.innerHTML = `
+                            <h4>${city.name}</h4>
+                            <a href="${linkedInUrl}" target="_blank">View jobs on LinkedIn (10km radius)</a>
+                            <p><small>${linkedInUrl}</small></p>
+                        `;
+                        
+                        resultsContainer.appendChild(resultItem);
+                        citiesFound++;
+                        
+                        // Highlight the marker
+                        cityMarkers.forEach(marker => {
+                            if (marker.getLatLng().lat === city.coords[0] && 
+                                marker.getLatLng().lng === city.coords[1]) {
+                                marker.setIcon(L.icon({
+                                    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+                                    iconSize: [14, 23],
+                                    iconAnchor: [7, 23],
+                                    popupAnchor: [1, -19],
+                                    shadowSize: [23, 23]
+                                }));
+                            }
+                        });
+                    }
+                });
+                
+                if (citiesFound === 0) {
+                    resultsContainer.innerHTML += '<p>No cities found in the selected area. Try drawing a larger polygon.</p>';
+                }
+                
+                // Hide loading indicator
+                document.getElementById('loading').style.display = 'none';
+            }, 100);
+        });
+
+        // Control buttons
+        document.getElementById('draw-btn').addEventListener('click', function() {
+            drawnItems.clearLayers();
+            new L.Draw.Polygon(map, drawControl.options.draw.polygon).enable();
+            
+            // Reset markers to default
+            cityMarkers.forEach(marker => {
+                marker.setIcon(L.icon({
+                    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                    iconSize: [18, 30],
+                    iconAnchor: [9, 30],
+                    popupAnchor: [1, -24],
+                    shadowSize: [30, 30]
+                }));
+            });
+        });
+
+        document.getElementById('clear-btn').addEventListener('click', function() {
+            drawnItems.clearLayers();
+            document.getElementById('results').innerHTML = '<p>Draw an area to see job search results</p>';
+            document.getElementById('loading').style.display = 'none';
+            
+            // Reset markers to default
+            cityMarkers.forEach(marker => {
+                marker.setIcon(L.icon({
+                    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                    iconSize: [18, 30],
+                    iconAnchor: [9, 30],
+                    popupAnchor: [1, -24],
+                    shadowSize: [30, 30]
+                }));
+            });
+        });
+
+        // Initialize empty results message
+        document.getElementById('results').innerHTML = '<p>Draw an area to see job search results</p>';
+    </script>
+</body>
+</html>
