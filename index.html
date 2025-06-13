@@ -181,7 +181,7 @@
             
             // Process after a small delay to allow UI to update
             setTimeout(() => {
-                // Generate LinkedIn links with 10km radius
+                // Generate LinkedIn links with 16km radius
                 const resultsContainer = document.getElementById('results');
                 resultsContainer.innerHTML = '<h3>Job search results for selected area:</h3>';
                 
@@ -191,14 +191,14 @@
                     const cityPoint = { lat: city.coords[0], lng: city.coords[1] };
                     
                     if (isPointInPolygon(cityPoint, layer)) {
-                        // URL with 10km radius parameter
-                        const linkedInUrl = `https://www.linkedin.com/jobs/search/?location=${encodeURIComponent(city.name + ', Switzerland')}&distance=10`;
+                        // URL with 16km radius parameter
+                        const linkedInUrl = `https://www.linkedin.com/jobs/search/?location=${encodeURIComponent(city.name + ', Switzerland')}&distance=16`;
                         
                         const resultItem = document.createElement('div');
                         resultItem.className = 'result-item';
                         resultItem.innerHTML = `
                             <h4>${city.name}</h4>
-                            <a href="${linkedInUrl}" target="_blank">View jobs on LinkedIn (10km radius)</a>
+                            <a href="${linkedInUrl}" target="_blank">View jobs on LinkedIn (16km radius)</a>
                             <p><small>${linkedInUrl}</small></p>
                         `;
                         
