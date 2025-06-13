@@ -46,3 +46,8 @@
 - **Automatic city detection** without relying on a hardcoded list, by dynamically fetching or detecting cities within the drawn area.
 
 ---
+
+## Try MappedIn
+
+[MappedIn](https://braisam.github.io/MappedIn/)
+
